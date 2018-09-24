@@ -204,13 +204,13 @@ int epf_single_ran_rep_fail(
  * Returns the message size or -1 on error.
  */
  #define epf_single_ran_setup_ns(b, s, e, c, m, i) \
-	epf_single_ran_rep_ns(b, s, EP_ACT_RAN_SETUP, e, c, m)
+	epf_single_ran_rep_ns(b, s, EP_ACT_RAN_SETUP, e, c, m, i)
 
 /* Format a RAN Slice operation failed message.
  * Returns the message size or -1 on error.
  */
 #define epf_single_ran_slice_ns(b, s, e, c, m, i)  \
-	epf_single_ran_rep_ns(b, s, EP_ACT_RAN_SLICE, e, c, m)
+	epf_single_ran_rep_ns(b, s, EP_ACT_RAN_SLICE, e, c, m, i)
 
 /* Format a RAN operation not supported message.
  * Returns the message size or -1 on error.
