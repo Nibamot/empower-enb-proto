@@ -21,11 +21,6 @@ Controller are the following:
       report of the RAN slices, adding, removing or setting parameters on such
       elements.
 
-    - RAN_USER,
-      operating on User level in the RAN subsystem. This means getting a report
-      of the RAN users mapping (RNTI --> Slice association), adding or removing
-      such entries.
-
 
   FEEDBACK
 
