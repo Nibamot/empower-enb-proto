@@ -84,53 +84,7 @@ modifications in the next future. Keep the definitions flexible enough to be
 modified as protocol version evolve.
 
 
-RAN_MAC_SCHED TLV TOKEN
-
-The following message is the body of the specified TLV token. This means that
-BEFORE encountering this elements you will find a TLV header.
-
-Message:
-
-     0                   1                   2                   3
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |                    MAC slice scheduler ID                     |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    
-Fields:
-
-    SCHEDULER ID (32-bits)
-        A field containing the ID of the slice scheduler currently running.
-
-
-EP_TLV_RNTI_REPORT TOKEN
-
-The following message is the body of the specified TLV token. This means that
-BEFORE encountering this elements you will find a TLV header.
-
-The RNTI report is a generic TLV
-
-Message:
-
-     0                   1                   2                   3
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |                      MAC UE scheduler ID                      |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |            Nof_PRBs           | | | | | | | | | | | | | | | | |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    
-Fields:
-
-    UE SCHEDULER ID (32-bits)
-        A field containing the ID of the UE scheduler currently running for this
-        particular Slice.
-
-    NOF PRBs (16-bits):
-        Number of PRBs assigned to this Slice at MAC layer.
-
-
-EP_TLV_RAN_SLICE_MAC TOKEN
+EP_TLV_RNTI_REPORT TOKEN - 0x0001
 
 The following message is the body of the specified TLV token. This means that
 BEFORE encountering this elements you will find a TLV header.
@@ -151,5 +105,106 @@ Fields:
         RNTIs, meanings no UE are there.
         To detect how many RNTIs are there, just divide the TLV length by two.
 
+
+EP_TLV_CELL_CAP TOKEN - 0x0100
+
+The following message is the body of the specified TLV token. This means that
+BEFORE encountering this elements you will find a TLV header.
+
+This TLV token addess the description of the cell capabilities.
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |               PCI             |     Capabilities bitmask   -->|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |<--  Capabilities bitmask      |            DL EARFCN          |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |    DL PRBS    |            DL EARFCN          |    DL PRBS    |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    
+Fields:
+
+    PCI (16-bits);
+        This field contains the cell Physical Cell ID.
+
+    Capabilities bitmask (32-bits):
+        This field contains the capabilities of the single cell.
+    
+    DL EARFCN (16-bits):
+        Frequency on which the cell is operating in the DL.
+
+    DL PRBS (8-bits):
+        Number of Physical Resource Blocks in DL.
+
+    UL EARFCN (16-bits):
+        Frequency on which the cell is operating in the UL.
+
+    UL PRBS (8-bits):
+        Number of Physical Resource Blocks in UL.
+
+
+RAN_MAC_SCHED TLV TOKEN - 0x0500
+
+The following message is the body of the specified TLV token. This means that
+BEFORE encountering this elements you will find a TLV header.
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |                    MAC slice scheduler ID                     |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    
+Fields:
+
+    SCHEDULER ID (32-bits)
+        A field containing the ID of the slice scheduler currently running.
+
+
+EP_TLV_RAN_SLICE_MAC_RES TOKEN - 0x0501
+
+The following message is the body of the specified TLV token. This means that
+BEFORE encountering this elements you will find a TLV header.
+
+This TLV token address resource situation at Slice MAC layer.
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |            Nof_PRBs           | | | | | | | | | | | | | | | | |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    
+Fields:
+
+    NOF PRBs (16-bits):
+        Number of PRBs assigned to this Slice at MAC layer.
+
+
+EP_TLV_RAN_SLICE_MAC_SCHED TOKEN - 0x0502
+
+The following message is the body of the specified TLV token. This means that
+BEFORE encountering this elements you will find a TLV header.
+
+This TLV token address UE scheduling situation at Slice MAC layer.
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |                      MAC UE scheduler ID                      |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    
+Fields:
+
+    UE SCHEDULER ID (32-bits)
+        A field containing the ID of the UE scheduler currently running for this
+        particular Slice.
 
 Kewin R.
