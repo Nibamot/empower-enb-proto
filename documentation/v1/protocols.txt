@@ -80,12 +80,12 @@ Let's see some quick example of such organization:
         00 00 00 01 - eNB id (1)
         00 00       - Cell id (0)
         00 00 00 00 - Module id (0)
+        00 01       - Flags, reply direction (1) 
         19 00       - Size (25)
         00 00 00 0e - Sequence number (14)
         
     Event header:
         01          - Hello message (1)
-        01          - Direction: Reply (1)
         01          - Operation type: Success (1)
     
     Action header:
