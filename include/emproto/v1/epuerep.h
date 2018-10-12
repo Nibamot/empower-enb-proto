@@ -25,11 +25,14 @@
 #include <endian.h>
 #include <stdint.h>
 
+#include "eppri.h"
+#include "epTLV.h"
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
-
+#if 0
 /*
  * UE report messages
  */
@@ -37,8 +40,8 @@ extern "C"
 typedef struct __ep_ue_report_details {
 	uint16_t pci;     /* Cell on which the UE is attached */
 	uint32_t plmn;    /* Public Land Mobile Network identifier */
-	uint16_t rnti;    /* Radio Network Temporary Identifier */
-	uint64_t imsi;    /* International Mobile Subscriber Identity */
+	uint16_t  rnti;    /* Radio Network Temporary Identifier */
+	uint64_t  imsi;    /* International Mobile Subscriber Identity */
 }__attribute__((packed)) ep_uerep_det;
 
 /* Structure of ep_uerep_rep:
@@ -54,10 +57,74 @@ typedef struct __ep_ue_report_reply {
 	 * Here at the end of the message there will be listed the UEs details
 	 */
 }__attribute__((packed)) ep_uerep_rep;
+#endif
 
+/*
+ *
+ * UE state report information:
+ * 
+ */
+
+/* UE state report */
+typedef struct __ep_ue_report_state {
+	rnti_id_t rnti; /* Radio Network Temporary Identifier */
+	uint8_t   state;/* State of the UE */
+}__attribute__((packed)) ep_uerep_state;
+
+/* UE state report as TLV token */
+typedef struct __ep_ue_report_state_TLV {
+	ep_TLV         header;
+	ep_uerep_state body;
+}__attribute__((packed)) ep_uerep_state_TLV;
+
+/*
+ *
+ * UE identity report information:
+ * 
+ */
+
+/* UE identity informations */
+typedef struct __ep_ue_report_identity {
+	rnti_id_t rnti; /* Radio Network Temporary Identifier */
+	plmn_id_t plmn; /* Public Land Mobile Network identifier */
+	imsi_id_t imsi; /* International Mobile Subscriber Identity */
+	tmsi_id_t tmsi; /* Temporary Mobile Subscriber Identity */
+#if 0
+	imei_id_t imei; /* International Mobile Equipment Identity */
+#endif
+}__attribute__((packed)) ep_uerep_id;
+
+/* UE identity informations as TLV token */
+typedef struct __ep_ue_report_identity_TLV {
+	ep_TLV      header;
+	ep_uerep_id body;
+}__attribute__((packed)) ep_uerep_id_TLV;
+
+/* UE report request carry no data and just enable cell mechanism */
 typedef struct __ep_ue_report_request {
 	uint8_t dummy;
 }__attribute__((packed)) ep_uerep_req;
+
+/******************************************************************************
+ * Opaque structures for message formatting/parsing                           *
+ ******************************************************************************/
+
+typedef enum __ep_ue_report_status {
+	UE_STATUS_INVALID            = 0, /* Not a valid state */
+	UE_STATUS_RADIO_CONNECTED    = 1, /* UE connected through radio */
+	UE_STATUS_RADIO_DISCONNECTED = 2, /* UE disconnected from radio */
+	UE_STATUS_RCC_IDLE           = 3, /* UE in IDLE state */
+	UE_STATUS_RRC_CONNECTED      = 4, /* UE in CONNECTED state */
+	UE_STATUS_MAX
+} UE_REPORT_STATUS;
+
+typedef struct __ep_ue_details {
+	plmn_id_t plmn;  /* Public Land Mobile Network identifier */
+	rnti_id_t rnti;  /* Radio Network Temporary Identifier */
+	imsi_id_t imsi;  /* International Mobile Subscriber Identity */
+	tmsi_id_t tmsi;  /* Temporary Mobile Subscriber Identity */
+	uint8_t   state; /* State of the UE */
+} ep_ue_details;
 
 /******************************************************************************
  * Operation on single-event messages                                         *
@@ -70,18 +137,6 @@ typedef struct __ep_ue_report_request {
 /******************************************************************************
  * Operation on trigger-event messages                                        *
  ******************************************************************************/
-
-typedef struct __ep_ue_details {
-	uint16_t pci;   /* Cell used by this UE to attach */
-
-	uint32_t plmn;  /* Public Land Mobile Network identifier */
-	uint16_t rnti;  /* Radio Network Temporary Identifier */
-	uint64_t imsi;  /* International Mobile Subscriber Identity */
-
-	/* TODO:
-	 *   - RRC state?
-	 */
-} ep_ue_details;
 
 /* Format an UE report reply failure.
  * Returns the size of the message, or a negative error number.

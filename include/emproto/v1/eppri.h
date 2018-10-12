@@ -30,7 +30,12 @@ extern "C"
 typedef uint64_t enb_id_t;      /* Definition of the enb-id */
 typedef uint16_t cell_id_t;     /* Definition of the cell id */
 typedef uint32_t mod_id_t;      /* Definition of the module id */
+
 typedef uint16_t rnti_id_t;     /* Definition of the RNTI id */
+typedef uint32_t plmn_id_t;     /* Definition of the PLMN id */
+typedef uint64_t imsi_id_t;     /* Definition of the IMSI id */
+typedef uint32_t tmsi_id_t;     /* Definition of the TMSI id */
+typedef uint64_t imei_id_t;     /* Definition of the IMEI id */
 
 typedef uint32_t sched_id_t;    /* Definition of the scheduler id */
 

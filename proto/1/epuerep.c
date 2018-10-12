@@ -24,33 +24,152 @@ int epf_uerep_rep(
 	uint32_t        max_ues,
 	ep_ue_details * ues)
 {
-	int i = 0;
+	int                  i;
+	int                  s = 0;
+	char *               c = buf;
 
-	ep_uerep_rep * rep = (ep_uerep_rep *)buf;
-	ep_uerep_det * det = (ep_uerep_det *)(buf + sizeof(ep_uerep_rep));
+	ep_uerep_id_TLV *    ueid;
+	ep_uerep_state_TLV * uest;
 
-	if(size < sizeof(ep_uerep_rep) + (sizeof(ep_uerep_det) * nof_ues)) {
-		ep_dbg_log(EP_DBG_2"F - UEREP Rep: Not enough space!\n");
-		return -1;
-	}
-
-	rep->nof_ues = htonl(nof_ues);
-
-	ep_dbg_dump(EP_DBG_2"F - UREP Rep: ", buf, sizeof(ep_uerep_rep));
-
+	/* Process one UE per time */
 	for(i = 0; i < nof_ues && i < max_ues; i++) {
-		det[i].pci  = htons(ues[i].pci);
-		det[i].rnti = htons(ues[i].rnti);
-		det[i].plmn = htonl(ues[i].plmn);
-		det[i].imsi = htobe64(ues[i].imsi);
+		/* Do not count invalid RNTIs */
+		if(ues[i].rnti == 0) {
+			continue; /* Next UE */
+		}
 
-		ep_dbg_dump(
-			EP_DBG_3"F - UREP Det: ",
-			(char *)(det + i),
-			sizeof(ep_uerep_det));
+		/* Skip UE identity if no identity information are in place */
+		if(ues[i].imsi == 0 && ues[i].tmsi == 0 && ues[i].plmn == 0) {
+			goto ue_state;
+		}
+
+		if(c + sizeof(ep_uerep_id) > buf + size) {
+			ep_dbg_log(
+				EP_DBG_3"F - UERep TLV: Not enough space!\n");
+
+			return -1;
+		}
+
+		ueid = (ep_uerep_id_TLV *)c;
+
+		ueid->header.type   = htons(EP_TLV_UE_REP_ID);
+		ueid->header.length = htons(sizeof(ep_uerep_id));
+		ueid->body.rnti     = htons(ues[i].rnti);
+		ueid->body.plmn     = htonl(ues[i].plmn);
+		ueid->body.imsi     = htobe64(ues[i].imsi);
+		ueid->body.tmsi     = htonl(ues[i].tmsi);
+		
+		ep_dbg_dump(EP_DBG_3
+			"F - UERep ID TLV: ", c, sizeof(ep_uerep_id_TLV));
+
+		/* Advance with buffer and size*/
+		s += sizeof(ep_uerep_id_TLV);
+		c += sizeof(ep_uerep_id_TLV);
+ue_state:
+		/* Do not count invalid states */
+		if(ues[i].state == 0) {
+			continue; /* Next UE */
+		}
+
+		if(c + sizeof(ep_uerep_id_TLV) > buf + size) {
+			ep_dbg_log(
+				EP_DBG_3"F - UERep TLV: Not enough space!\n");
+
+			return -1;
+		}
+
+		uest = (ep_uerep_state_TLV *)c;
+
+		uest->header.type   = htons(EP_TLV_UE_REP_STATE);
+		uest->header.length = htons(sizeof(ep_uerep_state));
+		uest->body.rnti     = htons(ues[i].rnti);
+		uest->body.state    = ues[i].state;
+
+		ep_dbg_dump(EP_DBG_3
+			"F - UERep State TLV: ", c, sizeof(ep_uerep_state_TLV));
+
+		/* Advance with buffer and size */
+		s += sizeof(ep_uerep_state_TLV);
+		c += sizeof(ep_uerep_state_TLV);
 	}
 
-	return sizeof(ep_uerep_rep) + (sizeof(ep_uerep_det) * i);
+	return s;
+}
+
+int epp_uerep_rep_TLV(
+	char *          buf,
+	ep_ue_details * ues,
+	uint32_t *      nof_ues,
+	uint32_t        max_ues)
+{
+	int                  i;
+	int                  j   = -1;
+	ep_TLV *             tlv;
+	ep_uerep_id_TLV *    ueid;
+	ep_uerep_state_TLV * uest;
+
+	tlv      = (ep_TLV *)buf;
+	*nof_ues = 0;
+
+	switch(tlv->type) {
+	case EP_TLV_UE_REP_ID:
+		ueid = (ep_uerep_id_TLV *)buf;
+
+		/* Select the right UE slot where to save data */
+		for(i = 0; i < max_ues; i++) {
+			/* Select a free slot */
+			if(j < 0 && ues[i].rnti == 0) {
+				j = i;
+				*nof_ues = *nof_ues + 1;
+			}
+
+			if(ues[i].rnti == ntohs(ueid->body.rnti)) {
+				j = i;
+				break; /* for */
+			}
+		}
+
+		ep_dbg_dump(EP_DBG_3"P - UERep ID TLV: ", 
+			buf, sizeof(ep_uerep_id_TLV));
+
+		ues[j].rnti = ntohs(ueid->body.rnti);
+		ues[j].plmn = ntohl(ueid->body.plmn);
+		ues[j].imsi = be64toh(ueid->body.imsi);
+		ues[j].tmsi = ntohl(ueid->body.tmsi);
+
+		break;
+	case EP_TLV_UE_REP_STATE:
+		uest = (ep_uerep_state_TLV *)buf;
+
+		/* Select the right UE slot where to save data */
+		for(i = 0; i < max_ues; i++) {
+			/* Select a free slot */
+			if(j < 0 && ues[i].rnti == 0) {
+				j = i;
+				*nof_ues = *nof_ues + 1;
+			}
+
+			if(ues[i].rnti == ntohs(uest->body.rnti)) {
+				j = i;
+				break; /* for */
+			}
+		}
+
+		ep_dbg_dump(EP_DBG_3"P - UERep State TLV: ", 
+			buf, sizeof(ep_uerep_state_TLV));
+
+		ues[j].rnti = ntohs(uest->body.rnti);
+		ues[j].state= uest->body.state;
+
+		break;
+	default:
+		ep_dbg_log(EP_DBG_3"P - UERep TLV: Unexpected token %d!\n",
+			tlv->type);
+
+		break;
+	}
+
+	return EP_SUCCESS;
 }
 
 int epp_uerep_rep(
@@ -60,41 +179,32 @@ int epp_uerep_rep(
 	uint32_t        max_ues,
 	ep_ue_details * ues)
 {
-	int i = -1;
+	char *               c = buf;
 
-	ep_uerep_rep * rep = (ep_uerep_rep *)buf;
-	ep_uerep_det * det = (ep_uerep_det *)(buf + sizeof(ep_uerep_rep));
+	ep_TLV *             tlv;
 
-	if(size < sizeof(ep_uerep_rep)) {
-		ep_dbg_log(EP_DBG_2"P - UEREP Rep: Not enough space!\n");
+	if(!buf || !nof_ues || !ues) {
 		return EP_ERROR;
 	}
 
-	if(size < sizeof(ep_uerep_rep) + (
-		sizeof(ep_uerep_det) * rep->nof_ues))
-	{
-		ep_dbg_log(EP_DBG_2"P - UEREP Rep: Not enough space!\n");
-		return EP_ERROR;
-	}
+	ep_dbg_dump(EP_DBG_2"P - UERep Rep: ", buf, 0);
 
-	if(nof_ues) {
-		*nof_ues = ntohl(rep->nof_ues);
-	}
+	/* Continue until exhaustion of given data */
+	while(c < buf + size) {
+		tlv = (ep_TLV *)c;
 
-	ep_dbg_dump(EP_DBG_2"P - UREP Rep: ", buf, sizeof(ep_uerep_rep));
-
-	if(ues) {
-		for(i = 0; i < *nof_ues && i < max_ues; i++) {
-			ues[i].pci  = ntohs(det[i].pci);
-			ues[i].rnti = ntohs(det[i].rnti);
-			ues[i].plmn = ntohl(det[i].plmn);
-			ues[i].imsi = be64toh(det[i].imsi);
-
-			ep_dbg_dump(
-				EP_DBG_3"P - UREP Det: ",
-				(char *)(ues + i),
-				sizeof(ep_uerep_det));
+		/* Reading next TLV token will overflow the buffer? */
+		if(c + sizeof(ep_TLV) + ntohs(tlv->length) > buf + size) {
+			ep_dbg_log(EP_DBG_3"P - UERep Rep: TLV %d > %d\n",
+				ntohs(sizeof(ep_TLV)) + ntohs(tlv->length),
+				(buf + size) - c);
+			break;
 		}
+
+		/* Explorethe single token */
+		epp_uerep_rep_TLV(c, ues, nof_ues, max_ues);
+
+		c += sizeof(ep_TLV) + ntohs(tlv->length);
 	}
 
 	return EP_SUCCESS;

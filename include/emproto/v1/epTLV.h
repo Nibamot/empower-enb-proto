@@ -74,6 +74,11 @@ enum ep_TLV_type {
 	/*
 	 * Type 7 reserved to UE reports
 	 */
+
+	/* Token contains UE identity information */
+	EP_TLV_UE_REP_ID           = 0x0700,
+	/* Token contains UE status information */
+	EP_TLV_UE_REP_STATE        = 0x0701
 };
 
 /* Structure of the TLV header common to all components */
