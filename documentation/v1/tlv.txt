@@ -207,4 +207,69 @@ Fields:
         A field containing the ID of the UE scheduler currently running for this
         particular Slice.
 
+
+EP_TLV_UE_REP_ID TOKEN - 0x0700
+
+The following message is the body of the specified TLV token. This means that
+BEFORE encountering this elements you will find a TLV header.
+
+This TLV token address UE situation in the cell.
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |              RNTI             |              PLMN          -->|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |<--           PLMN             |              IMSI          -->|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |                             IMSI                              |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |<--           IMSI             |              TMSI          -->|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |<--           TMSI             | | | | | | | | | | | | | | | | |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+Fields:
+
+    RNTI (16 bits):
+        The Radio Network Temporary Identifier used to address the UE.
+
+    PLNN (32 bits):
+        The Public Land Mobile Network ID of the UE.
+
+    IMSI (64 bits):
+        The International Mobile Subscriber Identity for the Ue.
+
+    TMSI (32 bits):
+        The Temporary Mobile Subscriber Identity of the UE.
+
+
+EP_TLV_UE_REP_STATE TOKEN - 0x0701
+
+The following message is the body of the specified TLV token. This means that
+BEFORE encountering this elements you will find a TLV header.
+
+This TLV token address UE status.
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |              RNTI             |     Status    | | | | | | | | |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+Fields:
+
+    RNTI (16 bits):
+        The Radio Network Temporary Identifier used to address the UE.
+
+    STATUS (8 bits):
+        The current status of the UE. Such statuses are:
+            0 - Invalid, thread always as an error
+            1 - RADIO_CONNECTED, the UE correctly attached to the cell
+            2 - RADIO_DISCONNECTED, the UE correctly disconnected from the cell
+
 Kewin R.

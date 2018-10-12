@@ -37,39 +37,16 @@ Reply:
      0                   1                   2                   3
      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |                         Number of UEs                         |
+    |                         UE report TLVs                        |
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 Fields:
 
-    NUMBER OF UES
-        A 32-bits field which identifies how many UE descriptor are following 
-        this header in this message.
-        
-UE descriptor:
+    TLV TOKENS:
+        One or more TLV tokens describing the User Equipment.
+        Possible Token to expect during this event are (see 'tlv.txt'):
 
-     0                   1                   2                   3
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |              PCI              |              PLMN          -->|
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |<--          PLMN              |              RNTI             |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |                             IMSI                           -->|
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |<--                          IMSI                              |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    
-Fields:
-
-    PCI
-        A 16-bits field which identifies the PCI where the UE is connected on.
-        
-    PLMN
-    	A 32-bits field which identifies the UE PLMN.
-    	
-   	IMSI
-   		A 64-bits field which identifies the UE International Mobile Subscriber
-   		Identity. This is not mandatory and can be left zero-filled.
+            EP_TLV_UE_REP_ID
+            EP_TLV_UE_REP_STATE
       
 Kewin R.
