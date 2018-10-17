@@ -26,52 +26,38 @@
 
 #include "eppri.h"
 #include "epcelcap.h"
+#include "epRAN.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-/* NOTE: Definitions of a bitmask fields */
-typedef enum __ep_enb_capabilities_types {
-	/* Can't do anything except present himself */
-	EP_ECAP_NOTHING    = 0x0,
-	/* Can report UEs */
-	EP_ECAP_UE_REPORT  = 0x1,
-	/* Can report UEs signal power */
-	EP_ECAP_UE_MEASURE = 0x2,
-	/* Can hand-over UE to other eNBs */
-	EP_ECAP_HANDOVER   = 0x4,
-} ep_ecap_type;
-
 /*
  * eNB capabilities message
  */
 
-typedef struct __ep_enb_capabilities_reply {
-	uint32_t cap;        /* eNB capabilities */
-	/* Cells details are appended here, at the end of eNB message */
-}__attribute__((packed)) ep_ecap_rep;
-
-typedef struct __ep_enb_capabilities_request {
-	uint8_t dummy;
-}__attribute__((packed)) ep_ecap_req;
-
 /******************************************************************************
- * Operation on single-event messages                                         *
+ * Opaque structures for message formatting/parsing                           *
  ******************************************************************************/
 
 /* Maximum number of expected cells in an eNB capabilities message */
 #define EP_ECAP_CELL_MAX	8
 
 typedef struct __ep_enb_details {
-	/* Bitmask of the available capabilities; see 'ep_ecap_type' */
-	uint32_t    capmask;
 	/* Array of the valid cells */
 	ep_cell_det cells[EP_ECAP_CELL_MAX];
 	/* Number of valid cells */
 	uint32_t    nof_cells;
+	/* RAN slicing details */
+	ep_ran_det  ran[EP_ECAP_CELL_MAX];
+	/* Number of valid RAN slicing details */
+	uint32_t    nof_ran;
 } ep_enb_det;
+
+/******************************************************************************
+ * Operation on single-event messages                                         *
+ ******************************************************************************/
 
 /* Format an eNB capabilities negative reply.
  * Returns the size of the message, or a negative error number.

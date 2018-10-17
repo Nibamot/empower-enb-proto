@@ -8,16 +8,8 @@ Base Station level. Such capabilities are basically what the eNB is presenting
 as services to the controller, which can be later activated/deactivated and 
 tuned to the desired configuration.
 
-Simple capabilities of the eNB comes in a bitmask, while more detailed ones will
-be attached to the end of the message as TLV packets. Type-Length-Value packets
-are and extensible way to represent data, organized in such way that unknown
-types are simply skipped during message evaluation.
-
-The possible TLV entry that you can expect here are:
-
-    - Cell capability: 
-      They carries capabilities offered by a cell hosted in the eNB.
-      See 'cellcap' documentation file for more details.
+eNB capabilities are organized by cells, with each cell describing which are the
+supported functionalities.
 
 Life-cycle:
 
@@ -43,15 +35,16 @@ Reply:
      0                   1                   2                   3
      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    |                         Capabilities                          |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     |                   Zero or more TLV entries                    |
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     
 Fields:
 
-    CAPABILITIES
-        A 32-bits bitmask which identify the active capabilities in this eNB.
-        See epenbcap.h to discover the map of bits --> capability.
+    TLV TOKENS:
+        One or more TLV tokens describing the User Equipment.
+        Possible Token to expect during this event are (see 'tlv.txt'):
+
+            EP_TLV_CELL_CAP
+            EP_TLV_RAN_CAPS
 
 Kewin R.

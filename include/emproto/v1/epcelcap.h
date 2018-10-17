@@ -34,50 +34,66 @@ extern "C"
 /* Capabilities for a single Cell */
 typedef enum __ep_cell_capabilities_types {
 	/* Can't do anything except present himself */
-	EP_CCAP_NOTHING     = 0,
-	/* Cell can report about PHY layer status */
-	EP_CCAP_PHY_REPORT  = 1,
-	/* Cell can report about MAC layer status */
-	EP_CCAP_MAC_REPORT  = 2,
-	/* Cell can operate RAN slicing */
-	EP_CCAP_RAN_SLICING = 4
+	EP_CCAP_NOTHING      = 0,
+	/* Cell support UE reporting */
+	EP_CCAP_UE_REPORT    = 1,
+	/* Cell support UE measurements */
+	EP_CCAP_UE_MEASURE   = 2,
+	/* Cell supports measurements over its mechanism */
+	EP_CCAP_CELL_MEASURE = 4,
+	/* Cell can perform X2 handover */
+	EP_CCAP_X2_HANDOVER  = 8,
 } ep_ccap_type;
 
 /*
- * Cell capabilities message
+ *
+ * Cell capabilities details
+ * 
  */
 
-typedef struct __ep_cell_capabilities_reply {
+typedef struct __ep_cell_capabilities_details {
 	uint16_t pci;       /* Physical cell id */
-	uint32_t cap;       /* Cell capabilities */
+	uint32_t feat;      /* Cell features */
 	uint16_t DL_earfcn; /* Frequency at which the cell operates in DL */
 	uint8_t  DL_prbs;   /* Physical Resource Block available in the DL */
 	uint16_t UL_earfcn; /* Frequency at which the cell operates in UL */
 	uint8_t  UL_prbs;   /* Physical Resource Block available in the UL */
-}__attribute__((packed)) ep_ccap_rep;
+	uint16_t max_ues;   /* Maximum number of supported UEs */
+}__attribute__((packed)) ep_ccap_det;
+
+/* TLV-style descriptor of Cell Capabilities information */
+typedef struct __ep_ccap_TLV {
+	ep_TLV      header;  /* Header of the TLV token */
+	ep_ccap_det body;    /* Body of the TLV token */
+} __attribute__((packed)) ep_ccap_TLV;
+
+/*
+ *
+ * Cell capabilities request
+ * 
+ */
 
 typedef struct __ep_cell_capabilities_request {
 	uint8_t dummy;
 }__attribute__((packed)) ep_ccap_req;
 
-/* TLV-style descriptor of Cell Capabilities information */
-typedef struct __ep_ccap_TLV {
-	ep_TLV      header;  /* Header of the TLV token */
-	ep_ccap_rep body;    /* Body of the TLV token */
-} __attribute__((packed)) ep_ccap_TLV;
-
 /******************************************************************************
- * Operation on single-event messages                                         *
+ * Opaque structures for message formatting/parsing                           *
  ******************************************************************************/
 
 typedef struct __ep_cell_details {
 	uint16_t pci;
-	uint32_t cap;
+	uint32_t feat;
 	uint16_t DL_earfcn;
 	uint16_t UL_earfcn;
 	uint8_t  DL_prbs;
 	uint8_t  UL_prbs;
+	uint16_t max_ues;
 } ep_cell_det;
+#if 0
+/******************************************************************************
+ * Operation on single-event messages                                         *
+ ******************************************************************************/
 
 /* Format a cell capabilities negative reply.
  * Returns the size of the message, or a negative error number.
@@ -118,7 +134,7 @@ int epf_single_ccap_req(
 
 /* Parse a cell capabilities request for the desired fields */
 int epp_single_ccap_req(char * buf, unsigned int size);
-
+#endif
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

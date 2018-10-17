@@ -66,6 +66,8 @@ enum ep_TLV_type {
 	EP_TLV_RAN_SLICE_MAC_RES   = 0x0501,
 	/* Token contains RAN Slice specific MAC scheduler information */
 	EP_TLV_RAN_SLICE_MAC_SCHED = 0x0502,
+	/* Token contains RAN Slice Capabilities for a specific cell */
+	EP_TLV_RAN_CAP             = 0x0503,
 
 	/*
 	 * Type 6 reserved to UE measurements

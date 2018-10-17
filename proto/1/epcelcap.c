@@ -16,7 +16,7 @@
 #include <netinet/in.h>
 
 #include <emproto.h>
-
+#if 0
 int epf_ccap_rep(
 	char *        buf,
 	unsigned int  size,
@@ -289,3 +289,4 @@ int epp_single_ccap_req(char * buf, unsigned int size)
 		buf + sizeof(ep_hdr) + sizeof(ep_s_hdr),
 		size);
 }
+#endif

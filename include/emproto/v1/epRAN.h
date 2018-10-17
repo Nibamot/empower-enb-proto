@@ -32,15 +32,50 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-/*
- * Message structures:
- */
+/*****************************************************************************
+ *                                                                           *
+ *                          RAN Slice capabilities                           *
+ *                                                                           *
+ *****************************************************************************/
 
- /*****************************************************************************
-  *                                                                           *
-  * RAN SETUP                                                                 *
-  *                                                                           *
-  *****************************************************************************/
+/* Bitmask values to use in the RAN setup capabilities bitmask */
+typedef enum __ep_ran_layer1_caps {
+	EP_RAN_LAYER1_CAP_NOTHING = 0,
+} RAN_l1_caps;
+
+/* Bitmask values to use in the RAN setup capabilities bitmask */
+typedef enum __ep_ran_layer2_caps {
+	EP_RAN_LAYER2_CAP_NOTHING     = 0,
+	EP_RAN_LAYER2_CAP_RBG_SLICING = 1,
+	EP_RAN_LAYER2_CAP_PRB_SLICING = 2,
+} RAN_l2_caps;
+
+/* Bitmask values to use in the RAN setup capabilities bitmask */
+typedef enum __ep_ran_layer3_caps {
+	EP_RAN_LAYER3_CAP_NOTHING = 0,
+} RAN_l3_caps;
+
+/* RAN slicing capabilities message */
+typedef struct __ep_ran_slicing_capabilities {
+	uint16_t pci;           /* Physical Cell ID */
+	uint32_t l1_caps;       /* Mask of capabilities at layer 1 */
+	uint32_t l2_caps;       /* Mask of capabilities at layer 2 */
+	uint32_t l3_caps;       /* Mask of capabilities at layer 3 */
+	uint32_t mac_sched;     /* MAC slice scheduler ID */
+	uint16_t max_slices;    /* Maximum amount of supported slices */
+}__attribute__((packed)) ep_ran_caps;
+
+/* Contains information to describe the slice capabilities in TLV style */
+typedef struct __ep_ran_slicing_capabilities_TLC {
+	ep_TLV      header;
+	ep_ran_caps body;
+} __attribute__((packed)) ep_ran_caps_TLV;
+
+/*****************************************************************************
+ *                                                                           *
+ *                          RAN Slicing Setup                                *
+ *                                                                           *
+ *****************************************************************************/
 
 /* Contains information to describe the slice scheduler */
 typedef struct __ep_ran_mac_sched {
@@ -53,22 +88,6 @@ typedef struct __ep_ran_mac_sched_TLV {
 	ep_ran_mac_sched body;
 } __attribute__((packed)) ep_ran_mac_sched_TLV;
 
-/* Bitmask values to use in the RAN setup capabilities bitmask */
-typedef enum __ep_ran_layer1_caps {
-	EP_RAN_LAYER1_CAP_NOTHING = 0,
-} RAN_l1_caps;
-
-/* Bitmask values to use in the RAN setup capabilities bitmask */
-typedef enum __ep_ran_layer2_caps {
-	EP_RAN_LAYER2_CAP_NOTHING = 0,
-	EP_RAN_LAYER2_CAP_PRB_SLICING = 1,
-} RAN_l2_caps;
-
-/* Bitmask values to use in the RAN setup capabilities bitmask */
-typedef enum __ep_ran_layer3_caps {
-	EP_RAN_LAYER3_CAP_NOTHING = 0,
-} RAN_l3_caps;
-
  /* RAN Setup reply message */
 typedef struct __ep_ran_setup {
 	uint32_t layer1_cap;	/* Mask of capabilities at layer 1 */
@@ -76,11 +95,11 @@ typedef struct __ep_ran_setup {
 	uint32_t layer3_cap;	/* Mask of capabilities at layer 3 */
 }__attribute__((packed)) ep_ran_setup;
 
- /*****************************************************************************
-  *                                                                           *
-  * RAN Slice                                                                 *
-  *                                                                           *
-  *****************************************************************************/
+/*****************************************************************************
+ *                                                                           *
+ *                         RAN Slicing Slice Setup                           *
+ *                                                                           *
+ *****************************************************************************/
 
 /* RAN slice scheduler information */
 typedef struct __ep_ran_slice_sched {
@@ -141,10 +160,12 @@ typedef struct __rp_ran_l2_details {
 } ep_ran_l2_det;
 
 typedef struct __ep_ran_setup_details {
-	uint32_t      l1_mask;  /* Layer 1 capabilities */
-	uint32_t      l2_mask;  /* Layer 2 capabilities */
-	uint32_t      l3_mask;  /* Layer 3 capabilities */
-	ep_ran_l2_det l2;       /* Layer 2 details*/
+	cell_id_t     pci;       /* Physical cell ID */
+	uint32_t      l1_mask;   /* Layer 1 capabilities */
+	uint32_t      l2_mask;   /* Layer 2 capabilities */
+	uint32_t      l3_mask;   /* Layer 3 capabilities */
+	ep_ran_l2_det l2;        /* Layer 2 details*/
+	uint16_t      max_slices;/* Max amount of supported slices */
 } ep_ran_det;
 
 /******************************************************************************

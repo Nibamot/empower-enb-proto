@@ -124,6 +124,8 @@ Message:
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     |    DL PRBS    |            DL EARFCN          |    DL PRBS    |
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |            Max Ues            | | | | | | | | | | | | | | | | |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     
 Fields:
 
@@ -144,6 +146,9 @@ Fields:
 
     UL PRBS (8-bits):
         Number of Physical Resource Blocks in UL.
+
+    MAX UES (16-bits):
+        Number of maximum UE connecting to the cell.
 
 
 RAN_MAC_SCHED TLV TOKEN - 0x0500
@@ -206,6 +211,53 @@ Fields:
     UE SCHEDULER ID (32-bits)
         A field containing the ID of the UE scheduler currently running for this
         particular Slice.
+
+
+EP_TLV_RAN_CAP TOKEN - 0x0503
+
+The following message is the body of the specified TLV token. This means that
+BEFORE encountering this elements you will find a TLV header.
+
+This TLV token address the RAN capabilities for a certain cell.
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |       Physical Cell ID        |        L1 capabilities     -->|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |<--     L1 capabilities        |        L2 capabilities     -->|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |<--     L2 capabilities        |        L3 capabilities     -->|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |<--     L3 capabilities        |         MAC scheduler      -->|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |<--      MAC scheduler         |          MAX slices           |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    
+Fields:
+
+    PHYSICAL CELL ID (16-bits):
+        Physical Cell ID of the describing cell.
+
+    L1 CAPABILITIES (32-bits):
+        Bitmask of the offered capabilities at Layer 1.
+
+    L2 CAPABILITIES (32-bits):
+        Bitmask of the offered capabilities at Layer 2.
+        Such capabilities are:
+            1 - RBG Slicing
+            2 - PRB Slicing
+    
+    L3 CAPABILITIES (32-bits):
+        Bitmask of the offered capabilities at Layer 3.
+
+    MAC SCHEDULER (32-bits):
+        ID of the current running scheduler at MAC layer.
+
+    MAX SLICES (16-bits):
+        Maximum amount of supported slices for this cell.
 
 
 EP_TLV_UE_REP_ID TOKEN - 0x0700

@@ -22,20 +22,15 @@ int epf_ecap_rep(
 	unsigned int  size,
 	ep_enb_det *  det)
 {
-	char *        c   = buf + sizeof(ep_ecap_rep);
-	int           i   = 0;
-	ep_ecap_rep * rep = (ep_ecap_rep *)buf;
-	ep_ccap_TLV * ctlv;
+	char * c   = buf;
+	int    i   = 0;
 
-	if(size < sizeof(ep_ecap_rep)) {
-		ep_dbg_log(EP_DBG_2"F - ECAP Rep: Not enough space!\n");
-		return -1;
-	}
+	ep_ccap_TLV *     ctlv;
+	ep_ran_caps_TLV * rtlv;
 
-	rep->cap       = htonl(det->capmask);
+	ep_dbg_dump(EP_DBG_2"F - ECAP Rep: ", buf, 0);
 
-	ep_dbg_dump(EP_DBG_2"F - ECAP Rep: ", buf, sizeof(ep_ecap_rep));
-
+	/* Cell capabilities */
 	for(i = 0; i < det->nof_cells && i < EP_ECAP_CELL_MAX; i++) {
 		if(c + sizeof(ep_ccap_TLV) > buf + size) {
 			ep_dbg_log(EP_DBG_3"F - ECAP Rep: Not enough space!\n");
@@ -45,19 +40,46 @@ int epf_ecap_rep(
 		ctlv = (ep_ccap_TLV *)c;
 
 		ctlv->header.type   = htons(EP_TLV_CELL_CAP);
-		ctlv->header.length = htons(sizeof(ep_ccap_rep));
+		ctlv->header.length = htons(sizeof(ep_ccap_det));
 
 		ctlv->body.pci      = htons(det->cells[i].pci);
-		ctlv->body.cap      = htonl(det->cells[i].cap);
+		ctlv->body.feat     = htonl(det->cells[i].feat);
 		ctlv->body.DL_earfcn= htons(det->cells[i].DL_earfcn);
 		ctlv->body.DL_prbs  = det->cells[i].DL_prbs;
 		ctlv->body.UL_earfcn= htons(det->cells[i].UL_earfcn);
 		ctlv->body.UL_prbs  = det->cells[i].UL_prbs;
+		ctlv->body.max_ues  = htons(det->cells[i].max_ues);
 
 		ep_dbg_dump(EP_DBG_3"F - CCAP TLV: ", c, sizeof(ep_ccap_TLV));
 
 		/* Point to the next token */
 		c += sizeof(ep_ccap_TLV);
+	}
+
+	/* RAN slicing capabilities for each cell */
+	for(i = 0; i < det->nof_ran && i < EP_ECAP_CELL_MAX; i++) {
+		if(c + sizeof(ep_ran_caps_TLV) > buf + size) {
+			ep_dbg_log(EP_DBG_3"F - ECAP Rep: Not enough space!\n");
+			return -1;
+		}
+
+		rtlv = (ep_ran_caps_TLV *)c;
+
+		rtlv->header.type    = htons(EP_TLV_RAN_CAP);
+		rtlv->header.length  = htons(sizeof(ep_ran_caps));
+
+		rtlv->body.pci       = htons(det->ran[i].pci);
+		rtlv->body.l1_caps   = htonl(det->ran[i].l1_mask);
+		rtlv->body.l2_caps   = htonl(det->ran[i].l2_mask);
+		rtlv->body.l3_caps   = htonl(det->ran[i].l3_mask);
+		rtlv->body.mac_sched = htonl(det->ran[i].l2.mac.slice_sched);
+		rtlv->body.max_slices= htons(det->ran[i].max_slices);
+
+		ep_dbg_dump(
+			EP_DBG_3"F - RCAP TLV: ", c, sizeof(ep_ran_caps_TLV));
+
+		/* Point to the next token */
+		c += sizeof(ep_ran_caps_TLV);
 	}
 
 	return c - buf;
@@ -72,7 +94,8 @@ int epp_ecap_single_TLV(char * buf, ep_enb_det * det)
 {
 	ep_TLV *      tlv = (ep_TLV *)buf;
 
-	ep_ccap_rep * ccap;
+	ep_ccap_det * ccap;
+	ep_ran_caps * rcap;
 
 	/* Decide what to do depending on the TLV type */
 	switch(ntohs(tlv->type)) {
@@ -85,16 +108,42 @@ int epp_ecap_single_TLV(char * buf, ep_enb_det * det)
 		}
 
 		/* Points to the TLV body */
-		ccap = (ep_ccap_rep *)(buf + sizeof(ep_TLV));
+		ccap = (ep_ccap_det *)(buf + sizeof(ep_TLV));
 
 		det->cells[det->nof_cells].pci       = ntohs(ccap->pci);
+		det->cells[det->nof_cells].feat      = ntohl(ccap->feat);
 		det->cells[det->nof_cells].DL_earfcn = ntohs(ccap->DL_earfcn);
 		det->cells[det->nof_cells].DL_prbs   = ccap->DL_prbs;
 		det->cells[det->nof_cells].UL_earfcn = ntohs(ccap->UL_earfcn);
 		det->cells[det->nof_cells].UL_prbs   = ccap->UL_prbs;
+		det->cells[det->nof_cells].max_ues   = ntohs(ccap->max_ues);
 
 		/* Increase the value to use as index and counter */
 		det->nof_cells++;
+
+		ep_dbg_dump(EP_DBG_3"P - CCAP TLV: ", buf, sizeof(ep_ccap_TLV));
+
+		break;
+	case EP_TLV_RAN_CAP:
+		/* No more RAN slicing info than this */
+		if(det->nof_ran >= EP_ECAP_CELL_MAX) {
+			ep_dbg_log(EP_DBG_3"P - RCAP TLV: "
+				"Hitting max cells limit!\n");
+			break;
+		}
+
+		rcap = (ep_ran_caps *)(buf + sizeof(ep_TLV));
+
+		det->ran[det->nof_ran].pci        = ntohs(rcap->pci);
+		det->ran[det->nof_ran].l1_mask    = ntohl(rcap->l1_caps);
+		det->ran[det->nof_ran].l2_mask    = ntohl(rcap->l2_caps);
+		det->ran[det->nof_ran].l3_mask    = ntohl(rcap->l3_caps);
+		det->ran[det->nof_ran].max_slices = ntohl(rcap->max_slices);
+
+		det->ran[det->nof_ran].l2.mac.slice_sched = 
+			ntohl(rcap->mac_sched);
+
+		det->nof_ran++;
 
 		ep_dbg_dump(EP_DBG_3"P - CCAP TLV: ", buf, sizeof(ep_ccap_TLV));
 
@@ -113,26 +162,20 @@ int epp_ecap_rep(
 	unsigned int  size,
 	ep_enb_det *  det)
 {
-	char *        c   = buf + sizeof(ep_ecap_rep);
-	ep_ecap_rep * rep = (ep_ecap_rep *)buf;
+	char *        c   = buf;
+	//ep_ecap_rep * rep = (ep_ecap_rep *)buf;
 	ep_TLV *      tlv;
-
-	if(size < sizeof(ep_ecap_rep)) {
-		ep_dbg_log(EP_DBG_2"P - ECAP Rep: Not enough space!\n");
-		return EP_ERROR;
-	}
 
 	if(!det) {
 		ep_dbg_log(EP_DBG_2"P - ECAP Rep: Invalid pointer!\n");
 		return EP_ERROR;
 	}
 
-	det->capmask = ntohl(rep->cap);
-
-	ep_dbg_dump(EP_DBG_2"P - ECAP Rep: ", buf, sizeof(ep_ecap_rep));
+	ep_dbg_dump(EP_DBG_2"P - ECAP Rep: ", buf, 0);
 	
-	/* We need this set to a correct value */
+	/* We need these set to a correct value */
 	det->nof_cells = 0;
+	det->nof_ran   = 0;
 
 	/* Continue until the end of the given array */
 	while(c < buf + size) {
@@ -158,6 +201,7 @@ int epp_ecap_rep(
 
 int epf_ecap_req(char * buf, unsigned int size)
 {
+#if 0
 	ep_ecap_req * rep = (ep_ecap_req *)buf;
 
 	if(size < sizeof(ep_ecap_req)) {
@@ -166,19 +210,20 @@ int epf_ecap_req(char * buf, unsigned int size)
 	}
 
 	rep->dummy = 0;
+#endif
+	ep_dbg_dump(EP_DBG_2"F - ECAP Req: ", buf, 0);
 
-	ep_dbg_dump(EP_DBG_2"F - ECAP Req: ", buf, sizeof(ep_ecap_req));
-
-	return sizeof(ep_ecap_req);
+	return 0;
 }
 
 int epp_ecap_req(char * buf, unsigned int size)
 {
+#if 0
 	if(size < sizeof(ep_ecap_req)) {
 		ep_dbg_log(EP_DBG_2"P - ECAP Rep: Not enough space!\n");
 		return -1;
 	}
-
+#endif
 	ep_dbg_dump(EP_DBG_2"P - ECAP Req: ", buf, 0);
 
 	return EP_SUCCESS;
