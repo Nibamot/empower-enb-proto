@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Kewin Rausch
+/* Copyright (c) 2018 Kewin Rausch
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,85 +14,116 @@
  */
 
 #include <netinet/in.h>
+#include <string.h>
 
 #include <emproto.h>
 
 int epf_uemeas_rep(
 	char *          buf,
 	unsigned int    size,
-	uint32_t        nof_meas,
-	uint32_t        max,
-	ep_ue_measure * ues)
+	ep_ue_report *  rep)
 {
-	int i = 0;
+	int    i;
+	int    s = 0;
+	char * c = buf;
 
-	ep_uemeas_rep * rep = (ep_uemeas_rep *) buf;
-	ep_uemeas_det * det = (ep_uemeas_det *)(buf + sizeof(ep_uemeas_rep));
+	ep_ue_RRC_rep_TLV * rrc;
 
-	if(size < sizeof(ep_uemeas_rep) + (sizeof(ep_uemeas_det) + nof_meas)) {
-		ep_dbg_log(EP_DBG_2"F - UMEA Rep: Not enough space!\n");
-		return -1;
+	for(i = 0; i < rep->nof_rrc && i < EP_UE_RRC_MEAS_MAX; i++) {
+		if(c + sizeof(ep_ue_RRC_rep_TLV) > buf + size) {
+			ep_dbg_log(
+				EP_DBG_3"F - RRCRep TLV: Not enough space!\n");
+
+			return -1;
+		}
+
+		rrc = (ep_ue_RRC_rep_TLV *)c;
+
+		rrc->header.type   = htons(EP_TLV_UE_RRC_REPORT);
+		rrc->header.length = htons(sizeof(ep_ue_RRC_rep));
+
+		rrc->body.meas_id  = htons(rep->rrc[i].meas_id);
+		rrc->body.pci      = htons(rep->rrc[i].pci);
+		rrc->body.rsrq     = htons(rep->rrc[i].rsrq);
+		rrc->body.rsrp     = htons(rep->rrc[i].rsrp);
+
+		ep_dbg_dump(EP_DBG_3
+			"F - RRCRep TLV: ", c, sizeof(ep_ue_RRC_rep_TLV));
+
+		s += sizeof(ep_ue_RRC_rep_TLV);
+		c += sizeof(ep_ue_RRC_rep_TLV);
 	}
 
-	rep->nof_meas = htonl(nof_meas);
+	return s;
+}
 
-	ep_dbg_dump(EP_DBG_2"F - UMEA Rep: ", buf, sizeof(ep_uemeas_rep));
+int epp_uemeas_rep_TLV(char * buf, ep_ue_report * rep)
+{
+	ep_TLV *            tlv = (ep_TLV *)buf;
+	ep_ue_RRC_rep_TLV * rrc;
 
-	for(i = 0; i < nof_meas && i < max; i++) {
-		det[i].meas_id = ues[i].meas_id;
-		det[i].pci     = htons(ues[i].pci);
-		det[i].rsrp    = htons(ues[i].rsrp);
-		det[i].rsrq    = htons(ues[i].rsrq);
-		
-		ep_dbg_dump(
-			EP_DBG_3"F - UMEA Det: ", 
-			(char *)(det + i), 
-			sizeof(ep_uemeas_det));
+	switch(ntohs(tlv->type)) {
+	case EP_TLV_UE_RRC_REPORT:
+		rrc = (ep_ue_RRC_rep_TLV *)buf;
+
+		if(rep->nof_rrc >= EP_UE_RRC_MEAS_MAX) {
+			ep_dbg_log(EP_DBG_3"P - RRCRep TLV: No more slots\n");
+			return EP_ERROR;
+		}
+
+		ep_dbg_dump(EP_DBG_3"P - RRCRep TLV: ", 
+			buf, sizeof(ep_ue_RRC_rep_TLV));
+
+		rep->rrc[rep->nof_rrc].meas_id = ntohs(rrc->body.meas_id);
+		rep->rrc[rep->nof_rrc].pci     = ntohs(rrc->body.pci);
+		rep->rrc[rep->nof_rrc].rsrp    = ntohs(rrc->body.rsrp);
+		rep->rrc[rep->nof_rrc].rsrq    = ntohs(rrc->body.rsrq);
+
+		rep->nof_rrc++;
+
+		break;
+	default:
+		ep_dbg_log(EP_DBG_3"P - UEMeas TLV: Unexpected token %d!\n",
+			tlv->type);
+
+		break;
 	}
 
-	return sizeof(ep_uemeas_rep) + (sizeof(ep_uemeas_det) * i);
+	return EP_SUCCESS;
 }
 
 int epp_uemeas_rep(
-	char *          buf,
-	unsigned int    size,
-	uint32_t *      nof_meas,
-	uint32_t        max,
-	ep_ue_measure * ues)
+	char *         buf,
+	unsigned int   size,
+	ep_ue_report * rep)
 {
-	int i;
+	char *   c = buf;
+	ep_TLV * tlv;
 
-	ep_uemeas_rep * rep = (ep_uemeas_rep *) buf;
-	ep_uemeas_det * det = (ep_uemeas_det *)(buf + sizeof(ep_uemeas_rep));
-
-	if(size < sizeof(ep_uemeas_rep)) {
-		ep_dbg_log(EP_DBG_2"P - UMEA Rep: Not enough space!\n");
-		return -1;
+	if(!buf || !rep) {
+		return EP_ERROR;
 	}
 
-	if(size < sizeof(ep_uemeas_rep) + (
-		sizeof(ep_uemeas_det) + ntohl(rep->nof_meas)))
-	{
-		ep_dbg_log(EP_DBG_2"P - UMEA Rep: Not enough space!\n");
-		return -1;
-	}
+	ep_dbg_dump(EP_DBG_2"P - RRCMeas Rep: ", buf, 0);
 
-	*nof_meas = ntohl(rep->nof_meas);
+	memset(rep, 0, sizeof(ep_ue_report));
 
-	ep_dbg_dump("P - UMEA Rep: ", buf, size);
+	/* Continue until exhaustion of given data */
+	while(c < buf + size) {
+		tlv = (ep_TLV *)c;
 
-	if(ues) {
-		for(i = 0; i < *nof_meas && i < max; i++) {
-			ues[i].meas_id = det[i].meas_id;
-			ues[i].pci     = ntohs(det[i].pci);
-			ues[i].rsrp    = ntohs(det[i].rsrp);
-			ues[i].rsrq    = ntohs(det[i].rsrq);
-
-			ep_dbg_dump(
-				EP_DBG_3"P - UMEA Det: ",
-				(char *)(ues + i),
-				sizeof(ep_uemeas_det));
+		/* Reading next TLV token will overflow the buffer? */
+		if(c + sizeof(ep_TLV) + ntohs(tlv->length) > buf + size) {
+			ep_dbg_log(EP_DBG_3"P - UEMeas Rep: TLV %d > %d\n",
+				ntohs(sizeof(ep_TLV)) + ntohs(tlv->length),
+				(buf + size) - c);
+			break;
 		}
+
+		/* Explore the single token */
+		epp_uemeas_rep_TLV(c, rep);
+
+		c += sizeof(ep_TLV) + ntohs(tlv->length);
 	}
 
 	return EP_SUCCESS;
@@ -101,73 +132,110 @@ int epp_uemeas_rep(
 int epf_uemeas_req(
 	char *        buf,
 	unsigned int  size,
-	uint8_t       meas_id,
-	uint16_t      rnti,
-	uint16_t      earfcn,
-	uint16_t      interval,
-	int16_t       max_cells,
-	int16_t       max_meas)
+	ep_ue_meas *  meas)
 {
-	ep_uemeas_req * req = (ep_uemeas_req *)buf;
+	int    i;
+	int    s = 0;
+	char * c = buf;
 
-	if(size < sizeof(ep_uemeas_req) ) {
-		ep_dbg_log(EP_DBG_2"F - UMEA Req: Not enough space!\n");
-		return -1;
+	ep_ue_RRC_meas_TLV * rrc;
+
+	for(i = 0; i < meas->nof_rrc && i < EP_UE_RRC_MEAS_MAX; i++) {
+		if(c + sizeof(ep_ue_RRC_meas_TLV) > buf + size) {
+			ep_dbg_log(
+				EP_DBG_3"F - RRCMeas TLV: Not enough space!\n");
+
+			return -1;
+		}
+
+		rrc = (ep_ue_RRC_meas_TLV *)c;
+
+		rrc->header.type   = htons(EP_TLV_UE_RRC_MEAS);
+		rrc->header.length = htons(sizeof(ep_ue_RRC_measure));
+
+		rrc->body.rnti     = htons(meas->rrc[i].rnti);
+		rrc->body.meas_id  = htons(meas->rrc[i].meas_id);
+		rrc->body.earfcn   = htons(meas->rrc[i].earfcn);
+		rrc->body.max_cells= htons(meas->rrc[i].max_cells);
+		rrc->body.max_meas = htons(meas->rrc[i].max_meas);
+
+		ep_dbg_dump(EP_DBG_3
+			"F - RRCMeas TLV: ", c, sizeof(ep_ue_RRC_meas_TLV));
+
+		s += sizeof(ep_ue_RRC_meas_TLV);
+		c += sizeof(ep_ue_RRC_meas_TLV);
 	}
 
-	req->meas_id   = meas_id;
-	req->rnti      = htons(rnti);
-	req->earfcn    = htons(earfcn);
-	req->interval  = htons(interval);
-	req->max_cells = htons(max_cells);
-	req->max_meas  = htons(max_meas);
-
-	ep_dbg_dump(EP_DBG_2"F - UMEA Req: ", buf, sizeof(ep_uemeas_req));
-
-	return sizeof(ep_uemeas_req);
+	return s;
 }
 
-int epp_uemeas_req(
-	char * buf, unsigned int size,
-	uint8_t  * meas_id,
-	uint16_t * rnti,
-	uint16_t * earfcn,
-	uint16_t * interval,
-	int16_t  * max_cells,
-	int16_t  * max_meas)
+int epp_uemeas_req_TLV(char * buf, ep_ue_meas * meas)
 {
-	ep_uemeas_req * req = (ep_uemeas_req *) buf;
+	ep_TLV *             tlv = (ep_TLV *)buf;
+	ep_ue_RRC_meas_TLV * rrc;
 
-	if(size < sizeof(ep_uemeas_req) ) {
-		ep_dbg_log(EP_DBG_2"P - UMEA Req: Not enough space!\n");
-		return -1;
+	switch(ntohs(tlv->type)) {
+	case EP_TLV_UE_RRC_MEAS:
+		rrc = (ep_ue_RRC_meas_TLV *)buf;
+
+		if(meas->nof_rrc >= EP_UE_RRC_MEAS_MAX) {
+			ep_dbg_log(EP_DBG_3"P - RRCMeas TLV: No more slots\n");
+			return EP_ERROR;
+		}
+
+		ep_dbg_dump(EP_DBG_3"P - RRCMeas TLV: ", 
+			buf, sizeof(ep_ue_RRC_meas_TLV));
+
+		meas->rrc[meas->nof_rrc].meas_id  = ntohs(rrc->body.meas_id);
+		meas->rrc[meas->nof_rrc].rnti     = ntohs(rrc->body.rnti);
+		meas->rrc[meas->nof_rrc].earfcn   = ntohs(rrc->body.earfcn);
+		meas->rrc[meas->nof_rrc].interval = ntohs(rrc->body.interval);
+		meas->rrc[meas->nof_rrc].max_cells= ntohs(rrc->body.max_cells);
+		meas->rrc[meas->nof_rrc].max_meas = ntohs(rrc->body.max_meas);
+		
+		meas->nof_rrc++;
+
+		break;
+	default:
+		ep_dbg_log(EP_DBG_3"P - UEMeas TLV: Unexpected token %d!\n",
+			tlv->type);
+
+		break;
 	}
 
-	if(meas_id) {
-		*meas_id = req->meas_id;
+	return EP_SUCCESS;
+}
+
+int epp_uemeas_req(char * buf, unsigned int size, ep_ue_meas * meas)
+{
+	char *   c = buf;
+	ep_TLV * tlv;
+
+	if(!buf || !meas) {
+		return EP_ERROR;
 	}
 
-	if(rnti) {
-		*rnti = ntohs(req->rnti);
-	}
+	ep_dbg_dump(EP_DBG_2"P - RRCMeas Req: ", buf, 0);
 
-	if(earfcn) {
-		*earfcn = ntohs(req->earfcn);
-	}
+	memset(meas, 0, sizeof(ep_ue_meas));
 
-	if(interval) {
-		*interval = ntohs(req->interval);
-	}
+	/* Continue until exhaustion of given data */
+	while(c < buf + size) {
+		tlv = (ep_TLV *)c;
 
-	if(max_cells) {
-		*max_cells = ntohs(req->max_cells);
-	}
+		/* Reading next TLV token will overflow the buffer? */
+		if(c + sizeof(ep_TLV) + ntohs(tlv->length) > buf + size) {
+			ep_dbg_log(EP_DBG_3"P - UEMeas Req: TLV %d > %d\n",
+				ntohs(sizeof(ep_TLV)) + ntohs(tlv->length),
+				(buf + size) - c);
+			break;
+		}
 
-	if(max_meas) {
-		*max_meas = ntohs(req->max_meas);
-	}
+		/* Explore the single token */
+		epp_uemeas_req_TLV(c, meas);
 
-	ep_dbg_dump(EP_DBG_2"P - UMEA Req: ", buf, sizeof(ep_uemeas_req));
+		c += sizeof(ep_TLV) + ntohs(tlv->length);
+	}
 
 	return EP_SUCCESS;
 }
@@ -216,13 +284,15 @@ int epf_trigger_uemeas_rep_fail(
 	}
 
 	ret += ms;
-	ms   = epf_uemeas_rep(buf + ret, size - ret, 0, 0, 0);
+#if 0
+	ms   = epf_uemeas_rep(buf + ret, size - ret, 0);
 
 	if(ms < 0) {
 		return ms;
 	}
 
 	ret += ms;
+#endif
 	epf_msg_length(buf, size, ret);
 
 	return ret;
@@ -234,20 +304,13 @@ int epf_trigger_uemeas_rep(
 	enb_id_t        enb_id,
 	cell_id_t       cell_id,
 	mod_id_t        mod_id,
-	uint32_t        nof_meas,
-	uint32_t        max,
-	ep_ue_measure * ues)
+	ep_ue_report *  rep)
 {
 	int ms = 0;
 	int ret= 0;
 
-	if(!buf) {
-		ep_dbg_log(EP_DBG_0"F - Trigger UMEA Rep: Invalid buffer!\n");
-		return -1;
-	}
-
-	if(nof_meas > 0 && !ues) {
-		ep_dbg_log(EP_DBG_0"F - Trigger UMEA Rep: Invalid UEs!\n");
+	if(!buf || !rep) {
+		ep_dbg_log(EP_DBG_0"F - Trigger UMEA Rep: Invalid pointers!\n");
 		return -1;
 	}
 
@@ -276,7 +339,7 @@ int epf_trigger_uemeas_rep(
 	}
 
 	ret += ms;
-	ms   = epf_uemeas_rep(buf + ret, size - ret, nof_meas, max, ues);
+	ms   = epf_uemeas_rep(buf + ret, size - ret, rep);
 
 	if(ms < 0) {
 		return ms;
@@ -291,36 +354,27 @@ int epf_trigger_uemeas_rep(
 int epp_trigger_uemeas_rep(
 	char *          buf,
 	unsigned int    size,
-	uint32_t *      nof_ues,
-	uint32_t        max,
-	ep_ue_measure * ues)
+	ep_ue_report *  rep)
 {
-	if(!buf) {
+	if(!buf || !rep) {
 		ep_dbg_log(EP_DBG_0"P - Trigger UMEA Rep: Invalid buffer!\n");
 		return -1;
 	}
 
 	return epp_uemeas_rep(
 		buf + sizeof(ep_hdr) + sizeof(ep_t_hdr),
-		size,
-		nof_ues,
-		max,
-		ues);
+		size - (sizeof(ep_hdr) + sizeof(ep_t_hdr)),
+		rep);
 }
 
 int epf_trigger_uemeas_req(
-	char *        buf,
-	unsigned int  size,
-	enb_id_t      enb_id,
-	cell_id_t     cell_id,
-	mod_id_t      mod_id,
-	ep_op_type    op,
-	uint8_t       meas_id,
-	uint16_t      rnti,
-	uint16_t      earfcn,
-	uint16_t      interval,
-	int16_t       max_cells,
-	int16_t       max_meas)
+	char *       buf,
+	unsigned int size,
+	enb_id_t     enb_id,
+	cell_id_t    cell_id,
+	mod_id_t     mod_id,
+	ep_op_type   op,
+	ep_ue_meas * meas)
 {
 	int ms = 0;
 	int ret= 0;
@@ -360,15 +414,7 @@ int epf_trigger_uemeas_req(
 	}
 
 	ret += ms;
-	ms   = epf_uemeas_req(
-		buf + ret,
-		size - ret,
-		meas_id,
-		rnti,
-		earfcn,
-		interval,
-		max_cells,
-		max_meas);
+	ms   = epf_uemeas_req(buf + ret, size - ret, meas);
 
 	if(ms < 0) {
 		return ms;
@@ -383,26 +429,15 @@ int epf_trigger_uemeas_req(
 int epp_trigger_uemeas_req(
 	char *       buf,
 	unsigned int size,
-	uint8_t  *   meas_id,
-	uint16_t *   rnti,
-	uint16_t *   earfcn,
-	uint16_t *   interval,
-	int16_t  *   max_cells,
-	int16_t  *   max_meas)
+	ep_ue_meas * meas)
 {
-
 	if(!buf) {
 		ep_dbg_log(EP_DBG_0"P - Trigger UMEA Rep: Invalid buffer!\n");
 		return -1;
 	}
 
 	return epp_uemeas_req(
-		buf + sizeof(ep_hdr) + sizeof(ep_t_hdr),
-		size,
-		meas_id,
-		rnti,
-		earfcn,
-		interval,
-		max_cells,
-		max_meas);
+		buf + sizeof(ep_hdr) + sizeof(ep_t_hdr), 
+		size - (sizeof(ep_hdr) + sizeof(ep_t_hdr)), 
+		meas);
 }

@@ -43,6 +43,10 @@ enum ep_TLV_type {
 
 	/* Token contains a cell capabilities information */
 	EP_TLV_CELL_CAP            = 0x0100,
+	/* Token contains a cell PRBS measurement request */
+	EP_TLV_CELL_PRB_REQ        = 0x0101,
+	/* Token contains a cell PRBS measurement report */
+	EP_TLV_CELL_PRB_REPORT     = 0x0102,
 
 	/*
 	 * Type 2 reserved to eNB
@@ -72,6 +76,10 @@ enum ep_TLV_type {
 	/*
 	 * Type 6 reserved to UE measurements
 	 */
+
+	/* Token contains UE RCC Measurement information */
+	EP_TLV_UE_RRC_MEAS         = 0x0600,
+	EP_TLV_UE_RRC_REPORT       = 0x0601,
 
 	/*
 	 * Type 7 reserved to UE reports

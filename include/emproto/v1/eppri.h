@@ -39,6 +39,8 @@ typedef uint64_t imei_id_t;     /* Definition of the IMEI id */
 
 typedef uint32_t sched_id_t;    /* Definition of the scheduler id */
 
+typedef uint16_t  meas_id_t;    /* Definition of the measurement id */
+
 /*
  * RAN types 
  */

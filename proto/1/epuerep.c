@@ -111,7 +111,7 @@ int epp_uerep_rep_TLV(
 	tlv      = (ep_TLV *)buf;
 	*nof_ues = 0;
 
-	switch(tlv->type) {
+	switch(ntohs(tlv->type)) {
 	case EP_TLV_UE_REP_ID:
 		ueid = (ep_uerep_id_TLV *)buf;
 
@@ -201,7 +201,7 @@ int epp_uerep_rep(
 			break;
 		}
 
-		/* Explorethe single token */
+		/* Explore the single token */
 		epp_uerep_rep_TLV(c, ues, nof_ues, max_ues);
 
 		c += sizeof(ep_TLV) + ntohs(tlv->length);

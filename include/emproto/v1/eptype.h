@@ -51,7 +51,7 @@ typedef enum __ep_action_type {
 	EP_ACT_CCAP           =  3, /* Cell capabilities */
 	EP_ACT_UE_REPORT      =  4, /* UE report */
 	EP_ACT_UE_MEASURE     =  5, /* UE RRC measurements */
-	EP_ACT_MAC_REPORT     =  6, /* Report coming from MAC layer */
+	EP_ACT_CELL_MEASURE   =  6, /* Measurement relative to a cell */
 	EP_ACT_HANDOVER       =  7, /* Hand an UE over another eNB */
 	EP_ACT_RAN_SETUP      =  9, /* RAN setup operation */
 	EP_ACT_RAN_SLICE      = 10  /* Ran Slice Setup request */

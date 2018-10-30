@@ -48,10 +48,10 @@ extern "C"
 
 #include "ephello.h"
 #include "epenbcap.h"
-#include "epcelcap.h"
+#include "epcellcap.h"
 #include "epuerep.h"
 #include "epuemeas.h"
-#include "epmacrep.h"
+#include "epcellmeas.h"
 #include "epho.h"
 #include "epRAN.h"
 

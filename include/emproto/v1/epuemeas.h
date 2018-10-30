@@ -26,6 +26,7 @@
 #include <stdint.h>
 
 #include "eppri.h"
+#include "epTLV.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -36,11 +37,7 @@ extern "C"
  * UE measurements messages
  */
 
-/* PCI not specified; eNB decide which measure to pass */
-#define EP_UE_MEAS_ANY_PCI    0xffff
-/* Frequency not specified; eNB decide which measure to pass */
-#define EP_UE_MEAS_ANY_EARFCN 0xffff
-
+#if 0
 typedef struct __ep_ue_measurements_details {
 	uint8_t  meas_id; /* Id assigned for this measurement */
 	int16_t  pci;     /* Physical Cell Id measured */
@@ -73,6 +70,86 @@ typedef struct __ep_ue_measurement_request {
 	int16_t  max_cells;/* Up to this number of cells  */
 	int16_t  max_meas; /* Up to this number of measurements */
 }__attribute__((packed)) ep_uemeas_req;
+#endif
+
+/*
+ *
+ * UE measurement report information:
+ * 
+ */
+
+typedef struct __ep_ue_RRC_rep {
+	meas_id_t meas_id; /* Id assigned for this measurement */
+	cell_id_t pci;     /* Physical Cell Id measured */
+	uint16_t  rsrp;    /* Reference Signal Received Power */
+	uint16_t  rsrq;    /* Reference Signal Received Quality */
+}__attribute__((packed)) ep_ue_RRC_rep;
+
+typedef struct __ep_ue_RRC_report_TLV {
+	ep_TLV        header;
+	ep_ue_RRC_rep body;
+}__attribute__((packed)) ep_ue_RRC_rep_TLV;
+
+/*
+ *
+ * UE measurement request information:
+ * 
+ */
+
+typedef struct __ep_ue_RRC_meas {
+	meas_id_t meas_id;   /* Id assigned for this measurement */
+	rnti_id_t rnti;      /* Radio Network Temporary Identifier */
+	uint16_t  earfcn;    /* Frequency */
+	uint16_t  interval;  /* Interval in ms */
+	int16_t   max_cells; /* Max. number of cells */
+	int16_t   max_meas;  /* Max. number of measurements */
+}__attribute__((packed)) ep_ue_RRC_measure;
+
+typedef struct __ep_ue_RRC_meas_TLV {
+	ep_TLV            header;
+	ep_ue_RRC_measure body;
+}__attribute__((packed)) ep_ue_RRC_meas_TLV;
+
+/******************************************************************************
+ * Opaque structures for message formatting/parsing                           *
+ ******************************************************************************/
+
+#if 0
+typedef struct __ep_ue_measure {
+	uint8_t  meas_id; /* Id assigned for this measurement */
+	uint16_t pci;     /* Physical Cell Id measured */
+	uint16_t rsrp;    /* Reference Signal Received Power */
+	uint16_t rsrq;    /* Reference Signal Received Quality */
+} ep_ue_measure;
+#endif
+
+#define EP_UE_RRC_MEAS_MAX	8
+
+typedef struct __ep_ue_RRC_report {
+	meas_id_t meas_id; /* Id assigned for this measurement */
+	cell_id_t pci;     /* Physical Cell Id measured */
+	uint16_t  rsrp;    /* Reference Signal Received Power */
+	uint16_t  rsrq;    /* Reference Signal Received Quality */
+} ep_ue_RRC_report;
+
+typedef struct __ep_ue_report {
+	ep_ue_RRC_report rrc[EP_UE_RRC_MEAS_MAX];
+	uint32_t         nof_rrc;
+} ep_ue_report;
+
+typedef struct __ep_ue_RRC_measurement {
+	meas_id_t meas_id;   /* Id assigned for this measurement */
+	rnti_id_t rnti;      /* Radio Network Temporary Identifier */
+	uint16_t  earfcn;    /* Frequency */
+	uint16_t  interval;  /* Interval in ms */
+	int16_t   max_cells; /* Max. number of cells */
+	int16_t   max_meas;  /* Max. number of measurements */
+} ep_ue_RRC_meas;
+
+typedef struct __ep_ue_measurement {
+	ep_ue_RRC_meas rrc[EP_UE_RRC_MEAS_MAX];
+	uint32_t       nof_rrc;
+} ep_ue_meas;
 
 /******************************************************************************
  * Operation on single-event messages                                         *
@@ -85,13 +162,6 @@ typedef struct __ep_ue_measurement_request {
 /******************************************************************************
  * Operation on trigger-event messages                                        *
  ******************************************************************************/
-
-typedef struct __ep_ue_measure {
-	uint8_t  meas_id; /* Id assigned for this measurement */
-	uint16_t pci;     /* Physical Cell Id measured */
-	uint16_t rsrp;    /* Reference Signal Received Power */
-	uint16_t rsrq;    /* Reference Signal Received Quality */
-} ep_ue_measure;
 
 /* Format an UE measurement reply failure.
  * Returns the size of the message, or a negative error number.
@@ -112,45 +182,31 @@ int epf_trigger_uemeas_rep(
 	enb_id_t        enb_id,
 	cell_id_t       cell_id,
 	mod_id_t        mod_id,
-	uint32_t        nof_meas,
-	uint32_t        max,
-	ep_ue_measure * meas);
+	ep_ue_report *  rep);
 
 /* Parse an UE measurement reply looking for the desired fields */
 int epp_trigger_uemeas_rep(
 	char *          buf,
 	unsigned int    size,
-	uint32_t *      nof_meas,
-	uint32_t        max,
-	ep_ue_measure * meas);
+	ep_ue_report *  rep);
 
 /* Format an UE measurement request.
  * Returns the size of the message, or a negative error number.
  */
 int epf_trigger_uemeas_req(
-	char *       buf,
-	unsigned int size,
-	enb_id_t     enb_id,
-	cell_id_t    cell_id,
-	mod_id_t     mod_id,
-	ep_op_type   op,
-	uint8_t      meas_id,
-	uint16_t     rnti,
-	uint16_t     earfcn,
-	uint16_t     interval,
-	int16_t      max_cells,
-	int16_t      max_meas);
+	char *          buf,
+	unsigned int    size,
+	enb_id_t        enb_id,
+	cell_id_t       cell_id,
+	mod_id_t        mod_id,
+	ep_op_type      op,
+	ep_ue_meas *    meas);
 
 /* Parse an UE measurement request for the desired fields */
 int epp_trigger_uemeas_req(
-	char *       buf,
-	unsigned int size,
-	uint8_t  *   meas_id,
-	uint16_t *   rnti,
-	uint16_t *   earfcn,
-	uint16_t *   interval,
-	int16_t  *   max_cells,
-	int16_t  *   max_meas);
+	char *          buf,
+	unsigned int    size,
+	ep_ue_meas *    meas);
 
 #ifdef __cplusplus
 }
