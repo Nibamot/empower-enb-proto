@@ -151,6 +151,63 @@ Fields:
         Number of maximum UE connecting to the cell.
 
 
+EP_TLV_CELL_PRB_REQ TOKEN - 0x0101
+
+The following token describes the request of a cell PRB measurement. currently
+no fields are in place, but can be that the structure will be updated in the
+future.
+
+Sending such token has the effect of setup a PRB measurement that report at
+given interval (scheduled-type messages).
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    
+Fields:
+
+    Nothing.
+
+
+EP_TLV_CELL_PRB_REPORT TOKEN - 0x0102
+
+This token carries information of requested report. The info are relative to
+Physical Resource Blocks used by the cell. This elements are usually measured
+in the lower MAC layer of the LTE stack.
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |     DL_RES    |                     DL_USED                -->|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |<--  DL_USED   |     UL_RES    |           UL_USED         --> |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |<--          UL_USED           | | | | | | | | | | | | | | | | |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    
+Fields:
+
+    DL_RES (8-bits):
+        Total Downlink resources handled by this cell.
+
+    DL_USED (32-bits):
+        Cumulative number of resources used by the Downlink from the start of
+        the requests. This field always increases and can overflow!
+
+    UL_RES (8-bits):
+        Total Uplink resources handled by this cell.
+
+    UL_USED (8-bits):
+        Cumulative number of resources used by the Uplink from the start of
+        the requests. This field always increases and can overflow!
+
+
 RAN_MAC_SCHED TLV TOKEN - 0x0500
 
 The following message is the body of the specified TLV token. This means that
@@ -258,6 +315,79 @@ Fields:
 
     MAX SLICES (16-bits):
         Maximum amount of supported slices for this cell.
+
+
+EP_TLV_UE_RRC_MEAS TOKEN - 0x0600
+
+The following TLV carries the request to start RRC measurement for a specific 
+RNTI. The token contains all the information to perform a measurement on a 
+requested frequency for a specific interval.
+
+This TLV token address UE situation in the cell.
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |             MEAS_ID           |              RNTI             |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |             EARFCN            |             INTERVAL          |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |             MAX_CELL          |             MAX_MEAS          |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+Fields:
+
+    MEAS_ID (16 bits):
+        Measurement ID to which all this settings are bound to.
+
+    RNTI (16 bits):
+        Radio Network Temporary Identifier that address a certain UE in the 
+        cell.
+
+    EARFCN (16 bits):
+        Standard frequency to measure.
+
+    INTERVAL (16 bits):
+        Interval in milliseconds requested for the measurement. This interval
+        represent a guess, and can be adjusted depending on the UE situation.
+
+    MAX_CELL (16 bits):
+        Maximum amount to cell to report in this measurement.
+
+    MAX_MEAS (16 bits):
+        Maximum amount to measurements to report.
+
+
+EP_TLV_UE_RRC_REPORT TOKEN - 0x0601
+
+The following TLV carries a measurement for a request previosuly issued. As the
+name says, this is a RRC level measurement which follows the standards.
+
+Message:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |             MEAS_ID           |               PCI             |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |              RSRP             |               RSRQ            |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+Fields:
+
+    MEAS_ID (16 bits):
+        Measurement ID to which this report belongs to.
+
+    PCI (16 bits):
+        Physical Cell ID detected.
+
+    RSRP (16 bits):
+        Reference Signal Received Power.
+
+    INTERVAL (16 bits):
+        Reference Signal Received Quality.
 
 
 EP_TLV_UE_REP_ID TOKEN - 0x0700

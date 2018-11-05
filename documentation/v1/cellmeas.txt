@@ -1,0 +1,63 @@
+
+	EmPOWER Protocol Cell Measurement Message
+
+
+
+The Cell measurement message is in charge to request and report measurements 
+that take place into the cell, with values aggregated per cell. This meassage
+also extend the TLV-style approach.
+
+A request identifies which elements of the cell shall be measured, and a
+positive or negative reply informs if it's possible to proceed or not. Various
+elements/layer of the cell can be measured.
+
+Currently the request implicitly address the MAC layer measurement, since it's
+the only possible measurement supported. In the future TLV fields will identify
+the type of measure on its characteristics.
+
+Life-cycle:
+
+    Controller           Agent
+        | Request          |
+        +----------------->|
+        |                  |
+        |            Reply |
+        |<-----------------+
+        |                  |
+        v                  v
+
+Request:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    
+Fields:
+
+    TLV TOKENS:
+        One or more TLV tokens describing the User Equipment.
+        Possible Token to expect during this event are (see 'tlv.txt'):
+
+        EP_TLV_CELL_PRB_REQ
+
+
+Reply:
+
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |                   Zero or more TLV entries                    |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    
+Fields:
+
+    TLV TOKENS:
+        One or more TLV tokens describing the User Equipment.
+        Possible Token to expect during this event are (see 'tlv.txt'):
+        
+        EP_TLV_CELL_PRB_REPORT
+
+       
+Kewin R.

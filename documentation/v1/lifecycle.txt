@@ -6,20 +6,25 @@
 The default behavior have some minimal constrain in this version. The following
 schemas resume how interaction between Agent and Controller take place.
 
+This files documents how the interaction should be performed in order to
+maintain a proper behavior between Controller and Agent instances. There are
+also some assumptions performed by the both the Controller and the Agent; such
+logic will be highlighed here too.
 
-  CONNECTION
   
-A connection phase occurs between an Agent and a Controller. Multiple Agents can
-be embedded in a single eNB, but still they will have one connection with only 
-one controller. Connection from a single Agent to multiple Controller is not
-handled in this protocol version.
+  INITIAL CONNECTION
 
-During this phase the Agent first presents to the controller and, if accepted,
-it gets a positive hello reply back. In case of refusing the Agent can decide to
-try with another controller, or wait and try again after some time.
+This stage is performed by the agent instances, which are configured to connect
+to a specific controller on a specific TCP port. Multiple Agents can connect to
+a single Controller, but the opposite is not true: currently an Agent can only
+connect to a single Controller at the same time. It is always possible to
+prepare the agent to connect to a secondary controller if the primary is not
+online.
 
-If Hello is successful, the controller is expected to query the Agent about the
-base station capability (which also contains the number of cells in use).
+The HELLO message comes in a scheduled way, so you can assume that you should be
+receiving such message at each interval is received with the first request. If
+this is not the case you are free to assume that the network is congested or the
+Agent is down.
 
         Controller                Agent
             |                       |
@@ -35,102 +40,205 @@ base station capability (which also contains the number of cells in use).
             |                    Positive ---+
             |                     reply?
             |                       | y
-            | eNB capability req    |
-            +---------------------->|
-            |                       |
-            |                   Collecting
-            |                  capabilities
-            |                       |
-            |<----------------------+
-            |    eNB capability rep |
-            |                       |
 
 
-  KEEP ALIVE FUNCTIONALITY
+  ENB CAPABILITIES
 
-Not only the Hello message role is the one to present the Agent to the 
-controller, but it also plays the role of the Keep alive check. Every 
-customizable millisecond (2000 by default), a message is sent to the Controller
-to test that the connection is still up and working.
+After the initial Hello "handshaking", the Controller should send a capability
+request. This is necessary in order to build up the map of the network, and the
+abilities each single node possess.
 
-A controller can assume that if it does not receive any feedback from the agent,
-and no Hello are sent for the setup Keep Alive period, then the connection can
-be assumed to be down.
+The request is initiated by the controller, and the Agent reply with full list
+of every capability in each layer. This message is a single request-reply one,
+and can also be issued at any time to refresh capabilities if necessary.
 
         Controller                Agent
             |                       |
-            | UE Hello req          |
-        Ok! +<----------------------|<------+
-            |                       |       |
-            |                       |       | Every 'n' ms
-            |                       |       |   repeat.
-            |                       |       |
-            |---------------------->+ Ok! --+
-            |          UE Hello rep |
+            | eNB caps req          |
+            |---------------------> + 
+            |                       |
+            |                       | Collecting capabilities
+            |                       | from eNB internals
+            |                       |
+            + <---------------------|
+            |        eNB caps reply |
             |                       |
 
 
-  ENABLE/DISABLE FUNCTIONALITY
-  
-If the Agent reported it during capability discovery, the Controller can then
-decide to enable/disable a particular functionality of the eNB/cell. 
+  ENABLE/DISABLE FUNCTIONALITIES
 
-In the following example you will see the UE report life cycle. This message is
-an event of Trigger nature, which means that can occurs in any time without a 
-well defined interval. When such event occurs, the agent again send a reply back
-to the Controller which is formatted in a similar way of the first positive 
-reply.
-  
-        Controller                Agent
-            |                       |
-            | UE report req         |
-            +---------------------->|
-            |                       |
-            |                     Sanity
-            |                     checks
-            |                       |
-            |<----------------------+
-            |         UE report rep |
-            |                       |
-            |                   Timeout or
-            |                  event occurs
-            |                       |
-            |<----------------------+
-            |         UE report rep |
-            |                       |
-            
-Generic rule here is to invoke a request with operation field set to ADD in 
-order to enable a functionality, and set to REM to remove the functionality from
-the system.
+Once the capabilities have been collected from the eNB, the controller can
+decide to enable them in any order it desire. Some capabilities need others to
+retrieve information for their specific request: for example UE RRC measurement
+needs a RNTI Id in its request, and RNTIs are reported back from the Agent to
+the Controller thanks to the UE_Report.
+
+No limitation blocks the Controller to ask for report of random RNTIs if it
+desire to do so thus. There is no state machine which blocks a UE RRC 
+measurement request to be issued BEFORE the UE_Report.
 
 
-  ONT-TIME OPERATIONS
-  
-Some operation which can be issued from the Controller to the Agent are one-time
-only order, which must be performed and forgotten by the Agent. The Agent can
-always reply negatively or with "not supported" message to inform that the 
-operation is not available or has failed.
+  UE REPORTING
+
+Said so, the second message initiated by the Controller to the Agent usually is
+a UE Report message. This request aim to receive the state and identity (allowed
+fields at least) of the UE connected with a certain cell. 
+
+The state of each UE is, for the moment, classified in RADIO_CONNECTED and
+RADIO_DISCONNECTED, which identifies if radio resources for that particular UE
+have been allocated within the stack.
+
+The nature of this reporting is not scheduled- or single-event, and you can
+receive a report at any time after requesting the reporting activation.
+
+The reply contains various TLV tokens that describe each single RNTI.
 
         Controller                Agent
             |                       |
-            | RAN req               |
+            | UE_Report req         |
             +---------------------->|
             |                       |
-            |                     Sanity
-            |                     checks
+            |                       |
+            |                       |
             |                       |
             |<----------------------+
-            |               RAN rep |
+            |         UE_Report rep |
+            |<----------------------+
+            |         UE_Report rep |
+            |<----------------------+
+            |         UE_Report rep |
+            |<----------------------+
+            |         UE_Report rep |
+            |                       |
 
-In the case of Handover, since it is assumed that such operation will be done on
-X2 interface following the standards and propertary mechanism, a negative reply
-from the source eNB informs the Controller that something did not work to begin
-with, while a positive/negative reply from the Handover destination eNB informs
-the controller that the X2 handover took place, but failed for some other 
-reason.
+NOTE: A constrain is currently in place for UE_Report of RAN Slicing membership
+report. Within a single reply you have to send the membership reports relative
+to a single slice. This is a constrained present at Controller level.
 
-This of course force tboth the source and destination eNBs to run an Agent 
-instance.
+
+  UE MEASUREMENT
+
+Now that you have UE status, identity and slice membership (only if RAN Slicing
+functionality is enabled) reports, you can decide to act on the single UE. for
+example you can issue an RRC measurement request.
+
+The Controller fills up a certain request for one or more UE, then send the
+message to the Agent. The Agent translate such request in LTE standard RRC 
+Reports and order the cell to send it through legit RRC layer mechanisms.
+
+This message nature is not schedule nor single one. Link between UE and eNB is
+scheduled in its nature, but between the Agent and Controller we decided to
+establish a Triggered message, that can be sent at any time (no assumptions on
+timings at the controller side).
+
+This is in general true for every UE report, since their nature are bound to the
+UEs, and due to signal coverage, disconnection or similar events their send
+cannot be totally scheduled.
+
+UE measurement have a report view per UE, and does not aggregate reports to
+present a cell-wise view. For such kind of reports please refer to Cell 
+Measurements.
+  
+        Controller                Agent
+            |                       |
+            | UE_Measure req        |
+            +---------------------->|
+            |                       |
+            |                       |
+            |                       |
+            |                       |
+            |<----------------------+
+            |        UE_Measure rep |
+            |<----------------------+
+            |        UE_Measure rep |
+            |<----------------------+
+            |        UE_Measure rep |
+            |                       |
+
+
+  CELL MEASUREMENT
+
+Again, after the eNB capabilites have been exchanged, the Controller can at any
+time decide to request the measurement of functionalities of the cell. Such
+messages now are scheduled events, since the connection between the Controller
+and the Agent is assumed to be reliable.
+
+Cell measurement aims to report to the Controller about the situation of various
+layer of eNB cells, like resource load, buffer states and so on. 
+
+Cell measurements have a report view which aims to the cell, and does not have
+UE granularity.
+
+        Controller                Agent
+            |                       |
+            | Cell_Measure req      |
+            +---------------------->|
+            |                       |<--+
+            |                       |   | After the given interval
+            |                       |   | collect again the data and report
+            |                       |   | back to the Controller.
+            |<----------------------+---+
+            |      Cell_Measure rep |
+            |                       |
+
+
+  RAN_SLICING OPERATIONS
+
+During the eNB capabilities report the cell can inform the Controller that such
+functionality is enabled for certains cells under its control. If this is the
+case, the Controller is then free to issue RAN Slicing order to the cell.
+
+Such orders are: create/remove a slice, associate/disassiociate an user with a 
+slice and configure the slice properties (like resources associated or scheduler
+type).
+
+Obviously trying to remove a not existing slice will result in no operation or
+error message returned. Use the common sense here in order to act properly on
+the slicing mechanism (the Agent/wrapper must be implemented in order not to
+break on invalid reqeusts).
+
+NOTE: Every operation performed on creation/removal/configuration of a slice 
+will result in a feedback from the Agent reporting the current slices situation.
+In case of big number of slices this can be a problem, so probably this behavior
+will be changed in the future. This is also true for user association and 
+removal. This constrains are added by Controller mechanisms.
+
+        Controller                Agent
+            |                       | --- Creating a slice
+            | RAN_Slice Create req  |
+            +---------------------->|
+            |                       |
+            |<----------------------+
+            |  RAN_Slices situation |
+            |                       |
+            |                       | --- Deleting a slice
+            | RAN_Slice Delete req  |
+            +---------------------->|
+            |                       |
+            |<----------------------+
+            |  RAN_Slices situation |
+            |                       |
+            |                       |
+            | RAN_Slice Conf req    | --- Configuring a slice
+            +---------------------->|
+            |                       |
+            |<----------------------+
+            |  RAN_Slices situation |
+            |                       |
+
+
+  HO OPERATIONS
+
+In the case of Handover the relation of the Controller is not with one Agent,
+but with two. This because Handover can fail on various nodes, not only in the
+source one.
+
+In case of early error the source Agent provides the error, otherwise is the
+destination Agent which have to report it. This is also true in the case of
+success.
+
+Handover request are expected to be received any time is the eNB support such
+capability, otherwise a not supported message shall be returned.
 
         Controller                Agent                   Agent
             |                       |                       |
