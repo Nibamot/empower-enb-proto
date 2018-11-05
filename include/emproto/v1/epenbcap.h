@@ -25,7 +25,7 @@
 #include <stdint.h>
 
 #include "eppri.h"
-#include "epcelcap.h"
+#include "epcellcap.h"
 #include "epRAN.h"
 
 #ifdef __cplusplus
