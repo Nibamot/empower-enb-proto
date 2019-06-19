@@ -41,5 +41,8 @@ Again, as for any other installation, you will need superuser rights in order to
 ## Proto Bindings
 The library has been improved in order to include bindings of various programming languages. The bindings aim to provide an interface to the proto library (written in C) to the environment provided by other languages.
 
+### Python
+These python bindings have been included to extend the functionality of the enb-proto library. 
+
 ### License
 The code is released under the Apache License, Version 2.0.
